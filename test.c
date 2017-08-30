@@ -27,7 +27,7 @@ int main(int argc, char * argv[]) {
 
 	//解析完需要释放
 	free(njstr);
-
 	//解析好 一定要注意释放操作
 	cjson_delete(root);
+	return EXIT_SUCCESS;
 }
