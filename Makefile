@@ -1,7 +1,6 @@
 .PHONY : all clean
 
 all : test.exe
-
 clean :
 	-rm -rf *~
 	-rm -rf test.exe
