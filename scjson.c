@@ -464,8 +464,9 @@ static char * _print_number(cjson_t item, tstr_t p) {
 // 输出字符串内容
 static char * _print_string(char * str, tstr_t p) {
 	size_t len = 0;
+	unsigned char c;
 	const char * ptr;
-	char c, * nptr, *out;
+	char * nptr, *out;
 
 	if (!str || !*str) { //最特殊情况,什么都没有 返回NULL
 		out = tstr_expand(p, 3);
@@ -720,20 +721,24 @@ extern cjson_t cjson_newtypearray(unsigned char type, const void * array, size_t
 //
 cjson_t 
 cjson_detacharray(cjson_t array, size_t idx) {
-	cjson_t c;
-	if ((!array) || !(c = array->child))
-		RETURN(NULL, "check param is array:%p, idx:%zu is error!", array, idx);
+    cjson_t c, p;
+    if ((!array) || !(c = array->child))
+        RETURN(NULL, "check param is array:%p, idx:%zu is error!", array, idx);
 
-	while (idx > 0 && c) {
-		--idx;
-		c = c->next;
-	}
-	if(!c) {
-		RETURN(NULL, "check param is too dig idx:sub %zu.", idx);
-	}
-	if(c == array->child)
-		array->child = c->next;
-	c->next = NULL;
+    // 查找我们要数据
+    for (p = NULL; idx > 0 && c; c = c->next) {
+        --idx;
+        p = c;
+    }
+    if (NULL == c) {
+        RETURN(NULL, "check param is too dig idx:sub %zu.", idx);
+    }
+
+    if (NULL == p) 
+        array->child = c->next;
+    else
+        p->next = c->next;
+    c->next = NULL;
 	return c;
 }
 
@@ -745,18 +750,24 @@ cjson_detacharray(cjson_t array, size_t idx) {
 //
 cjson_t 
 cjson_detachobject(cjson_t object, const char * key) {
-	cjson_t c;
-	if ((!object) || !(c = object->child) || !key || !*key) {
-		RETURN(NULL, "check param is object:%p, key:%s.", object, key);
-	}
+    cjson_t c, p;
+    if ((!object) || !(c = object->child) || !key || !*key) {
+        RETURN(NULL, "check param is object:%p, key:%s.", object, key);
+    }
 	
-	while(c && tstr_icmp(c->key, key))
-		c = c->next;
-	if(!c) {
-		RETURN(NULL, "check param key:%s to empty!", key);
-	}
-	if(c == object->child)
-		object->child = c->next;
-	c->next = NULL;
-	return c;
+    // 开始找到数据
+    for (p = NULL; c && tstr_icmp(c->key, key); c = c->next) {
+        p = c;
+    }
+    if(NULL == c) {
+        RETURN(NULL, "check param key:%s to empty!", key);
+    }
+
+    // 返回最终结果
+    if (NULL == p)
+        object->child = c->next;
+    else
+        p->next = c->next;
+    c->next = NULL;
+    return c;
 }
