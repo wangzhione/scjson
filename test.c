@@ -29,5 +29,5 @@ int main(int argc, char * argv[]) {
     printf("str  = %s\n", str);
     free(str);
     json_delete(r);
-	return EXIT_SUCCESS;
+    return EXIT_SUCCESS;
 }
