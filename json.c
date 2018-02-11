@@ -65,34 +65,34 @@ str_dup(const char * str) {
 //
 char * 
 str_freads(const char * path) {
-	int err;
-	size_t rn, cap, len;
-	char * str, buf[BUFSIZ];
-	FILE * txt = fopen(path, "rb");
-	if (NULL == txt) return NULL;
+    int err;
+    size_t rn, cap, len;
+    char * str, buf[BUFSIZ];
+    FILE * txt = fopen(path, "rb");
+    if (NULL == txt) return NULL;
 
-	// 分配内存
-	len = 0;
-	str = malloc(cap = BUFSIZ);
+    // 分配内存
+    len = 0;
+    str = malloc(cap = BUFSIZ);
 
-	// 读取文件内容
-	do {
-		rn = fread(buf, sizeof(char), BUFSIZ, txt);
-		if ((err = ferror(txt))) {
-			free(str);
-			fclose(txt);
-			return NULL;
-		}
-		// 开始添加构建数据
-		if (len + rn >= cap)
-			str = realloc(str, cap <<= 1);
-		memcpy(str + len, buf, rn);
-		len += rn;
-	} while (rn == BUFSIZ);
+    // 读取文件内容
+    do {
+        rn = fread(buf, sizeof(char), BUFSIZ, txt);
+        if ((err = ferror(txt))) {
+            free(str);
+            fclose(txt);
+            return NULL;
+        }
+        // 开始添加构建数据
+        if (len + rn >= cap)
+            str = realloc(str, cap <<= 1);
+        memcpy(str + len, buf, rn);
+        len += rn;
+    } while (rn == BUFSIZ);
 
-	// 设置结尾, 并返回结果
-	str[len] = '\0';
-	return realloc(str, len + 1);
+    // 设置结尾, 并返回结果
+    str[len] = '\0';
+    return realloc(str, len + 1);
 }
 
 // 字符串构建的初始化大小
