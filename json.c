@@ -53,7 +53,6 @@ str_dup(const char * str) {
     if (str) {
         size_t len = strlen(str) + 1;
         char * ssr = malloc(len * sizeof(char));
-        assert(ssr != NULL);
         return memcpy(ssr, str, len);
     }
     return NULL;
@@ -70,9 +69,7 @@ str_freads(const char * path) {
 	size_t rn, cap, len;
 	char * str, buf[BUFSIZ];
 	FILE * txt = fopen(path, "rb");
-	if (NULL == txt) {
-		RETURN(NULL, "fopen rb path error = %s.", path);
-	}
+	if (NULL == txt) return NULL;
 
 	// 分配内存
 	len = 0;
@@ -84,7 +81,7 @@ str_freads(const char * path) {
 		if ((err = ferror(txt))) {
 			free(str);
 			fclose(txt);
-			RETURN(NULL, "fread err path = %d, %s.", err, path);
+			return NULL;
 		}
 		// 开始添加构建数据
 		if (len + rn >= cap)

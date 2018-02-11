@@ -2,11 +2,9 @@
 #define _H_JSON
 
 #include <math.h>
-#include <errno.h>
 #include <float.h>
 #include <stdio.h>
 #include <limits.h>
-#include <assert.h>
 #include <string.h>
 #include <stdarg.h>
 #include <stdlib.h>
@@ -15,35 +13,6 @@
 #include <stdbool.h>
 
 //-------------------------------------json prevs begin-----------------------------------
-
-#ifndef _H_ASSEXT
-#define _H_ASSEXT
-
-//
-// CERR - 打印错误信息, 添加了一些特有的宏操作
-//
-#define CERR(fmt, ...)                                                  \
-fprintf(stderr, "[%s:%s:%d][%d:%s]" fmt "\r\n",                         \
-    __FILE__, __func__, __LINE__, errno, strerror(errno), ##__VA_ARGS__)
-
-//
-// RETURN - 打印错误信息, 并return返回指定结果
-// val		: return的东西, 当需要 return void; 时候填 ',' 就过 or NIL
-// fmt		: 双引号包裹的格式化字符串
-// ...		: fmt中对应的参数
-// return	: val
-// 
-#define NIL
-#define RETURN(val, fmt, ...)   \
-do {                            \
-    CERR(fmt, ##__VA_ARGS__);   \
-    return val;                 \
-} while(0)
-
-#define RETNIL(fmt, ...)        \
-RETURN(NIL, fmt, ##__VA_ARGS__)
-
-#endif//_H_ASSEXT
 
 #ifndef _H_STREXT
 #define _H_STREXT
