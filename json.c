@@ -4,9 +4,9 @@
 
 //
 // str_cmpi - 字符串不区分大小写比较函数
-// ls		: 左串
-// rs		: 右串
-// return	: ls > rs 返回 > 0; ... < 0; ... =0
+// ls       : 左串
+// rs       : 右串
+// return   : ls > rs 返回 > 0; ... < 0; ... =0
 //
 int 
 str_cmpi(const char * ls, const char * rs) {
@@ -24,8 +24,8 @@ str_cmpi(const char * ls, const char * rs) {
 
 //
 // str_cmpin - 字符串不区分小写的限定字符比较函数
-// ls		: 左串
-// rs		: 右串
+// ls       : 左串
+// rs       : 右串
 // n        : 长度
 // return   : ls > rs 返回 > 0; ... < 0; ... =0
 //
@@ -45,8 +45,8 @@ str_cmpin(const char * ls, const char * rs, size_t n) {
 
 //
 // str_dup - 字符串拷贝malloc函数, 需要自己free
-// str		: 待拷贝的串
-// return	: 返回拷贝后的串
+// str      : 待拷贝的串
+// return   : 返回拷贝后的串
 //
 char * 
 str_dup(const char * str) {
@@ -60,8 +60,8 @@ str_dup(const char * str) {
 
 //
 // str_freads - 简单的文件读取类,会读取完毕这个文件内容返回, 需要自己free
-// path		: 文件路径
-// return	: 创建好的字符串内容, 返回NULL表示读取失败
+// path     : 文件路径
+// return   : 创建好的字符串内容, 返回NULL表示读取失败
 //
 char * 
 str_freads(const char * path) {
