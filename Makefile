@@ -5,5 +5,5 @@ clean :
 	-rm -rf *~
 	-rm -rf test.exe
 
-test.exe : test.c scjson.c tstr.c
+test.exe : test.c json.c
 	gcc -g -Wall -O2 -o $@ $^ -lm

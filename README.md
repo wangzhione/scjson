@@ -1,47 +1,76 @@
-## scjson is much simpler and easier to use than cJSON 
+## c json is much simpler and easier to use than cJSON 
 
-        tstr is The TSTR is a simple c string, Welcome to try scjson
+    Welcome to try json by c
+
+***
 
 ### The following is a detailed demonstration of an internal structure
 
 ```C
-// json中几种数据结构和方式定义, 对于程序开发而言最难的还是理解思路(思想 or 业务)
-#define CJSON_NULL      (0u << 0)
-#define CJSON_FALSE     (1u << 0)
-#define CJSON_TRUE      (1u << 1)
-#define CJSON_NUMBER    (1u << 2)
-#define CJSON_STRING    (1u << 3)
-#define CJSON_ARRAY     (1u << 4)
-#define CJSON_OBJECT    (1u << 5)
+//
+// c json fast parse, type is all design
+//
 
-struct cjson {
-	struct cjson * next;	// 采用链表结构处理, 放弃二叉树结构, 优化内存
-	struct cjson * child;	// type == ( CJSON_ARRAY or CJSON_OBJECT ) 那么 child 就不为空
+#ifndef _STRUCT_JSON
 
-	unsigned char type;     // 数据类型 CJSON_XXXX, 一个美好的意愿
-	char * key;             // json内容那块的 key名称 	
-	union {
-		char * vs;      // type == CJSON_STRING, 是一个字符串 	
-		double vd;      // type == CJSON_NUMBER, 是一个num值, ((int)c->vd) 转成int 或 bool
-	};
+#define JSON_NULL      (0u << 0)
+#define JSON_TRUE      (1u << 0)
+#define JSON_FALSE     (1u << 1)
+#define JSON_NUMBER    (1u << 2)
+#define JSON_STRING    (1u << 3)
+#define JSON_OBJECT    (1u << 4)
+#define JSON_ARRAY     (1u << 5)
+
+struct json {
+    unsigned char type;         // CJSON_NULL - JSON_ARRAY
+    struct json * next;         // type = OBJECT or ARRAY 结点采用链表链接
+    struct json * chid;         // type = OBJECT or ARRAY 时候 chid 结点就有数据
+
+    char * keys;                // json 结点的 key 名称串
+    union {
+        char * vals;            // type == STRING 就是个 字符串
+        double vald;            // type == NUMBER 就是个 number
+    };
 };
 
-//定义cjson_t json类型
-typedef struct cjson * cjson_t;
+//
+// 定义 json 对象类型
+//
+typedef struct json * json_t;
 
 //
-// cjson_delete - 删除json串内容  
-// c		: 待释放json_t串内容
-// return	: void
+// json_vali - 得到结点的 int 值
+// item     : 处理的结点
+//          : 返回 number int 值
 //
-extern void cjson_delete(cjson_t c);
+#define json_vali(item) ((int)(item)->vald)
+
+#define _STRUCT_JSON
+#endif//_STRUCT_JSON
 
 //
-// cjson_newxxx - 通过特定源, 得到内存中json对象
-// str		: 普通格式的串
-// path		: json 文件路径
-// return	: 解析好的 json_t对象, 失败为 NULL
+// json_delete - json 对象销毁
+// c        : json 对象
+// return   : void
 //
-extern cjson_t cjson_newstr(const char * str);
+extern void json_delete(json_t c);
+
+//
+// json_file - 通过 path   路径构造 json 对象
+// json_create  - 通过 char * 对象构造 json 对象
+// str      : const char * 字符串
+// path     : 文件路径
+// return   : json_t 对象
+//
+extern json_t json_file(const char * path);
+extern json_t json_create(const char * str);
 
 ```
+
+***
+
+### Error is inevitable, welcome to exchange
+
+[茉莉花](https://music.163.com/#/song?id=288849)
+
+![茉莉花](./茉莉花.jpeg)
