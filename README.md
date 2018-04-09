@@ -13,13 +13,13 @@
 
 #ifndef _STRUCT_JSON
 
-#define JSON_NULL      (0u << 0)
-#define JSON_TRUE      (1u << 0)
-#define JSON_FALSE     (1u << 1)
-#define JSON_NUMBER    (1u << 2)
-#define JSON_STRING    (1u << 3)
-#define JSON_OBJECT    (1u << 4)
-#define JSON_ARRAY     (1u << 5)
+#define JSON_NULL       (0u << 0)
+#define JSON_TRUE       (1u << 0)
+#define JSON_FALSE      (1u << 1)
+#define JSON_NUMBER     (1u << 2)
+#define JSON_STRING     (1u << 3)
+#define JSON_OBJECT     (1u << 4)
+#define JSON_ARRAY      (1u << 5)
 
 struct json {
     unsigned char type;         // CJSON_NULL - JSON_ARRAY

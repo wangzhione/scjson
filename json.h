@@ -109,13 +109,15 @@ char * tstr_expand(tstr_t tsr, size_t len);
 
 #ifndef _STRUCT_JSON
 
-#define JSON_NULL      (0u << 0)
-#define JSON_TRUE      (1u << 0)
-#define JSON_FALSE     (1u << 1)
-#define JSON_NUMBER    (1u << 2)
-#define JSON_STRING    (1u << 3)
-#define JSON_OBJECT    (1u << 4)
-#define JSON_ARRAY     (1u << 5)
+#define JSON_NULL       (0u << 0)
+#define JSON_TRUE       (1u << 0)
+#define JSON_FALSE      (1u << 1)
+#define JSON_NUMBER     (1u << 2)
+#define JSON_STRING     (1u << 3)
+#define JSON_OBJECT     (1u << 4)
+#define JSON_ARRAY      (1u << 5)
+
+#define JSON_CONST      (1u << 7)
 
 struct json {
     unsigned char type;         // CJSON_NULL - JSON_ARRAY
@@ -143,6 +145,12 @@ typedef struct json * json_t;
 
 #define _STRUCT_JSON
 #endif//_STRUCT_JSON
+
+// json_vals - 分离一个 json 字符串
+inline char * json_vals(json_t item) {
+    item->type &= JSON_CONST;
+    return item->vals;
+}
 
 //
 // json_delete - json 对象销毁

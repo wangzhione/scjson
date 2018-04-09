@@ -65,25 +65,37 @@ str_dup(const char * str) {
 //
 char * 
 str_freads(const char * path) {
-    int err;
     size_t rn, cap, len;
     char * str, buf[BUFSIZ];
     FILE * txt = fopen(path, "rb");
     if (NULL == txt) return NULL;
 
-    // 分配内存
-    len = 0;
-    str = malloc(cap = BUFSIZ);
+    // 读取数据
+    rn = fread(buf, sizeof(char), BUFSIZ, txt);
+    if (rn == 0 || ferror(txt)) {
+        fclose(txt);
+        return NULL;
+    }
 
-    // 读取文件内容
+    // 直接分配内存足够直接返回内容
+    if (rn < BUFSIZ) {
+        str = malloc(rn + 1);
+        memcpy(str, buf, rn);
+        str[rn] = '\0';
+        return str;
+    }
+
+    str = malloc((cap = rn << 1));
+    memcpy(str, buf, len = rn);
     do {
         rn = fread(buf, sizeof(char), BUFSIZ, txt);
-        if ((err = ferror(txt))) {
-            free(str);
+        if (ferror(txt)) {
             fclose(txt);
+            free(str);
             return NULL;
         }
-        // 开始添加构建数据
+
+        // 填充数据
         if (len + rn >= cap)
             str = realloc(str, cap <<= 1);
         memcpy(str + len, buf, rn);
@@ -164,8 +176,10 @@ void
 json_delete(json_t c) {
     while (c) {
         json_t next = c->next;
+        unsigned char t = c->type;
+
         free(c->keys);
-        if (c->type & JSON_STRING)
+        if ((t & JSON_STRING) && !(t & JSON_CONST))
             free(c->vals);
 
         // 子结点 继续递归删除
@@ -576,13 +590,14 @@ json_file(const char * path) {
     // 读取文件中内容, 并检查
     if (!path || !*path) return NULL;
     str = str_freads(path);
-    if (!str || !*str) return NULL;
+    if (!str) return NULL;
 
     // 返回解析结果
     c = json_create(str);
     free(str);
     return c;
 }
+
 
 json_t 
 json_create(const char * str) {
