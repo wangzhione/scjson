@@ -12,97 +12,6 @@
 #include <stddef.h>
 #include <stdbool.h>
 
-//-------------------------------------json prevs begin-----------------------------------
-
-#ifndef _H_STREXT
-#define _H_STREXT
-
-//
-// str_cmpi - 字符串不区分大小写比较函数
-// ls       : 左串
-// rs       : 右串
-// return   : ls > rs 返回 > 0; ... < 0; ... =0
-//
-extern int str_cmpi(const char * ls, const char * rs);
-
-//
-// str_cmpin - 字符串不区分小写的限定字符比较函数
-// ls       : 左串
-// rs       : 右串
-// n        : 长度
-// return   : ls > rs 返回 > 0; ... < 0; ... =0
-//
-extern int str_cmpin(const char * ls, const char * rs, size_t n);
-
-//
-// str_dup - 字符串拷贝malloc函数, 需要自己free
-// str      : 待拷贝的串
-// return   : 返回拷贝后的串
-//
-extern char * str_dup(const char * str);
-
-//
-// str_freads - 简单的文件读取类,会读取完毕这个文件内容返回, 需要自己free
-// path     : 文件路径
-// return   : 创建好的字符串内容, 返回NULL表示读取失败
-//
-extern char * str_freads(const char * path);
-
-#endif//_H_STREXT
-
-#ifndef _H_TSTR
-#define _H_TSTR
-
-#ifndef _STRUCT_TSTR
-
-struct tstr {
-    size_t len;   // 长度
-    size_t cap;   // 容量
-    char * str;   // 字符池
-};
-
-typedef struct tstr * tstr_t;
-
-//
-// TSTR_CREATE - 栈上创建tstr_t结构
-// TSTR_DELETE - 释放栈上tstr_t结构
-// var  : 变量名
-//
-#define TSTR_CREATE(var) \
-struct tstr var[1] = { { 0, 0, NULL } }
-#define TSTR_DELETE(var) \
-free((var)->str)
-
-#define _STRUCT_TSTR
-#endif//_STRUCT_TSTR
-
-//
-// 向 tstr_t 串结构中添加字符等, 内存分配失败内部会自己处理
-// str      : 添加的c串
-// sz       : 添加串的长度
-//
-extern void tstr_appends(tstr_t tsr, const char * str);
-extern void tstr_appendn(tstr_t tsr, const char * str, size_t sz);
-
-//
-// tstr_cstr - 通过cstr_t串得到一个c的串以'\0'结尾
-// tsr      : tstr_t 串
-// return   : 返回构建好的c的串, 内存地址 tsr->str
-//
-extern char * tstr_cstr(tstr_t tsr);
-
-//
-// tstr_expand - 为当前字符串扩容, 属于低级api
-// tsr      : 可变字符串
-// len      : 扩容的长度
-// return   : tsr->str + tsr->len 位置的串
-//
-char * tstr_expand(tstr_t tsr, size_t len);
-
-#endif//_H_TSTR
-
-//-------------------------------------json prevs end-------------------------------------
-
 //
 // c json fast parse, type is all design
 //
@@ -252,7 +161,7 @@ inline json_t json_new_number(double v) {
 
 inline json_t json_new_string(const char * v) {
     json_t item = json_new_type(JSON_STRING);
-    item->vals = str_dup(v);
+    item->vals = v ? strdup(v) : NULL;
     return item;
 }
 

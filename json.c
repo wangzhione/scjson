@@ -8,8 +8,7 @@
 // rs       : 右串
 // return   : ls > rs 返回 > 0; ... < 0; ... =0
 //
-int 
-str_cmpi(const char * ls, const char * rs) {
+int str_cmpi(const char * ls, const char * rs) {
     int l, r;
     if (!ls || !rs) return (int)(ls - rs);
     
@@ -29,8 +28,7 @@ str_cmpi(const char * ls, const char * rs) {
 // n        : 长度
 // return   : ls > rs 返回 > 0; ... < 0; ... =0
 //
-int 
-str_cmpin(const char * ls, const char * rs, size_t n) {
+int str_cmpin(const char * ls, const char * rs, size_t n) {
     int l, r;
     if (!ls || !rs || n < 1) return (int)(ls - rs);
 
@@ -44,27 +42,11 @@ str_cmpin(const char * ls, const char * rs, size_t n) {
 }
 
 //
-// str_dup - 字符串拷贝malloc函数, 需要自己free
-// str      : 待拷贝的串
-// return   : 返回拷贝后的串
-//
-char * 
-str_dup(const char * str) {
-    if (str) {
-        size_t len = strlen(str) + 1;
-        char * ssr = malloc(len * sizeof(char));
-        return memcpy(ssr, str, len);
-    }
-    return NULL;
-}
-
-//
 // str_freads - 简单的文件读取类,会读取完毕这个文件内容返回, 需要自己free
 // path     : 文件路径
 // return   : 创建好的字符串内容, 返回NULL表示读取失败
 //
-char * 
-str_freads(const char * path) {
+char * str_freads(const char * path) {
     size_t rn, cap, len;
     char * str, buf[BUFSIZ];
     FILE * txt = fopen(path, "rb");
@@ -107,8 +89,26 @@ str_freads(const char * path) {
     return realloc(str, len + 1);
 }
 
+struct tstr {
+    size_t len;   // 长度
+    size_t cap;   // 容量
+    char * str;   // 字符池
+};
+
+typedef struct tstr * tstr_t;
+
+//
+// TSTR_CREATE - 栈上创建tstr_t结构
+// TSTR_DELETE - 释放栈上tstr_t结构
+// var  : 变量名
+//
+#define TSTR_CREATE(var) \
+struct tstr var[1] = { { 0, 0, NULL } }
+#define TSTR_DELETE(var) \
+free((var)->str)
+
 // 字符串构建的初始化大小
-#define _INT_TSTR  (1<<5)
+#define INT_TSTR  (1<<5)
 
 //
 // tstr_expand - 为当前字符串扩容, 属于低级api
@@ -116,11 +116,10 @@ str_freads(const char * path) {
 // len      : 扩容的长度
 // return   : tsr->str + tsr->len 位置的串
 //
-char * 
-tstr_expand(tstr_t tsr, size_t len) {
+char * tstr_expand(tstr_t tsr, size_t len) {
     size_t cap = tsr->cap;
     if ((len += tsr->len) > cap) {
-        for (cap = cap < _INT_TSTR ? _INT_TSTR : cap; cap < len; cap <<= 1)
+        for (cap = cap < INT_TSTR ? INT_TSTR : cap; cap < len; cap <<= 1)
             ;
         // 需要重新分配内存
         tsr->str = realloc(tsr->str, cap);
@@ -130,39 +129,36 @@ tstr_expand(tstr_t tsr, size_t len) {
 }
 
 //
-// 向 tstr_t 串结构中添加字符等, 内存分配失败内部会自己处理
-// str      : 添加的c串
-// sz       : 添加串的长度
+// tstr_cstr - 通过cstr_t串得到一个c的串以'\0'结尾
+// tsr      : tstr_t 串
+// return   : 返回构建好的c的串, 内存地址 tsr->str
 //
-void 
-tstr_appends(tstr_t tsr, const char * str) {
-    if (tsr && str) {
-        unsigned sz = (unsigned)strlen(str);
-        if (sz > 0)
-            tstr_appendn(tsr, str, sz);
-        tstr_cstr(tsr);
+char * tstr_cstr(tstr_t tsr) {
+    if (tsr->len < 1u || tsr->str[tsr->len - 1]) {
+        tstr_expand(tsr, 1u);
+        tsr->str[tsr->len] = '\0';
     }
+    return tsr->str;
 }
 
-inline void 
-tstr_appendn(tstr_t tsr, const char * str, size_t sz) {
+inline void tstr_appendn(tstr_t tsr, const char * str, size_t sz) {
     tstr_expand(tsr, sz);
     memcpy(tsr->str + tsr->len, str, sz);
     tsr->len += sz;
 }
 
 //
-// tstr_cstr - 通过cstr_t串得到一个c的串以'\0'结尾
-// tsr      : tstr_t 串
-// return   : 返回构建好的c的串, 内存地址 tsr->str
+// 向 tstr_t 串结构中添加字符等, 内存分配失败内部会自己处理
+// str      : 添加的c串
+// sz       : 添加串的长度
 //
-char * 
-tstr_cstr(tstr_t tsr) {
-    if (tsr->len < 1u || tsr->str[tsr->len - 1]) {
-        tstr_expand(tsr, 1u);
-        tsr->str[tsr->len] = '\0';
+void tstr_appends(tstr_t tsr, const char * str) {
+    if (tsr && str) {
+        unsigned sz = (unsigned)strlen(str);
+        if (sz > 0)
+            tstr_appendn(tsr, str, sz);
+        tstr_cstr(tsr);
     }
-    return tsr->str;
 }
 
 //-------------------------------------json prevs end-------------------------------------
@@ -775,6 +771,7 @@ _print_value(json_t item, tstr_t p) {
     case JSON_TRUE  : out = tstr_expand(p, 5); strcpy(out, "true"); break;
     case JSON_FALSE : out = tstr_expand(p, 6); strcpy(out, "false"); break;
     case JSON_NUMBER: out = _print_number(item, p); break;
+    case JSON_STRING+JSON_CONST:
     case JSON_STRING: out = _print_string(item->vals, p); break;
     case JSON_OBJECT: out = _print_object(item, p); break;
     case JSON_ARRAY : out = _print_array(item, p); break;
@@ -820,6 +817,7 @@ json_new_arrays(unsigned char t, const void * arr, int n) {
         case JSON_TRUE  : m = json_new_bool(arr ? ((bool *)arr)[i] : true); break;
         case JSON_FALSE : m = json_new_bool(arr ? ((bool *)arr)[i] :false); break;
         case JSON_NUMBER: m = json_new_number(((double *)arr)[i]); break;
+        case JSON_STRING+JSON_CONST:
         case JSON_STRING: m = json_new_string(((char **)arr)[i]); break;
         default: return NULL;
         }
