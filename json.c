@@ -104,9 +104,9 @@ typedef struct tstr * tstr_t;
 // TSTR_DELETE - 释放栈上tstr_t结构
 // var  : 变量名
 //
-#define TSTR_CREATE(var) \
+#define TSTR_CREATE(var)                \
 struct tstr var[1] = { { 0, 0, NULL } }
-#define TSTR_DELETE(var) \
+#define TSTR_DELETE(var)                \
 free((var)->str)
 
 // 字符串构建的初始化大小
