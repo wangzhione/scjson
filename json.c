@@ -1,6 +1,6 @@
 ﻿#include "json.h"
 
-//-------------------------------------json prevs begin-----------------------------------
+//----------------------------------json prevs begin--------------------------------
 
 //
 // str_cmpi - 字符串不区分大小写比较函数
@@ -30,7 +30,7 @@ int str_cmpi(const char * ls, const char * rs) {
 //
 int str_cmpin(const char * ls, const char * rs, size_t n) {
     int l, r;
-    if (!ls || !rs || n < 1) return (int)(ls - rs);
+    if (!ls || !rs || !n) return (int)(ls - rs);
 
     do {
         if ((l = *ls++) >= 'A' && l <= 'Z')
@@ -42,36 +42,36 @@ int str_cmpin(const char * ls, const char * rs, size_t n) {
 }
 
 //
-// str_freads - 简单的文件读取类,会读取完毕这个文件内容返回, 需要自己free
+// str_freads - 读取整个文件内容返回, 需要事后 free
 // path     : 文件路径
-// return   : 创建好的字符串内容, 返回NULL表示读取失败
+// return   : 文件内容字符串, NULL 表示读取失败
 //
 char * str_freads(const char * path) {
-    size_t rn, cap, len;
+    size_t n, cap, len;
     char * str, buf[BUFSIZ];
     FILE * txt = fopen(path, "rb");
     if (NULL == txt) return NULL;
 
     // 读取数据
-    rn = fread(buf, sizeof(char), BUFSIZ, txt);
-    if (rn == 0 || ferror(txt)) {
+    n = fread(buf, sizeof(char), BUFSIZ, txt);
+    if (n == 0 || ferror(txt)) {
         fclose(txt);
         return NULL;
     }
 
     // 直接分配内存足够直接返回内容
-    if (rn < BUFSIZ) {
+    if (n < BUFSIZ) {
         fclose(txt);
-        str = malloc(rn + 1);
-        memcpy(str, buf, rn);
-        str[rn] = '\0';
+        str = malloc(n + 1);
+        memcpy(str, buf, n);
+        str[n] = '\0';
         return str;
     }
 
-    str = malloc((cap = rn << 1));
-    memcpy(str, buf, len = rn);
+    str = malloc((cap = n << 1));
+    memcpy(str, buf, len = n);
     do {
-        rn = fread(buf, sizeof(char), BUFSIZ, txt);
+        n = fread(buf, sizeof(char), BUFSIZ, txt);
         if (ferror(txt)) {
             fclose(txt);
             free(str);
@@ -79,17 +79,19 @@ char * str_freads(const char * path) {
         }
 
         // 填充数据
-        if (len + rn >= cap)
+        if (len + n >= cap)
             str = realloc(str, cap <<= 1);
-        memcpy(str + len, buf, rn);
-        len += rn;
-    } while (rn == BUFSIZ);
+        memcpy(str + len, buf, n);
+        len += n;
+    } while (n == BUFSIZ);
 
     // 设置结尾, 并返回结果
     fclose(txt);
     str[len] = '\0';
     return realloc(str, len + 1);
 }
+
+#ifndef TSTR_CREATE
 
 struct tstr {
     size_t len;   // 长度
@@ -100,17 +102,20 @@ struct tstr {
 typedef struct tstr * tstr_t;
 
 //
-// TSTR_CREATE - 栈上创建tstr_t结构
-// TSTR_DELETE - 释放栈上tstr_t结构
+// TSTR_CREATE - 栈上创建 tstr_t 结构
+// TSTR_DELETE - 释放栈上 tstr_t 结构
 // var  : 变量名
 //
-#define TSTR_CREATE(var)                \
+#define TSTR_CREATE(var)                                    \
 struct tstr var[1] = { { 0, 0, NULL } }
-#define TSTR_DELETE(var)                \
+
+#define TSTR_DELETE(var)                                    \
 free((var)->str)
 
-// 字符串构建的初始化大小
-#define INT_TSTR  (1<<5)
+#endif//TSTR_CREATE
+
+// INT_TSTR - 字符串构建的初始化大小
+#define INT_TSTR  (1<<8)
 
 //
 // tstr_expand - 为当前字符串扩容, 属于低级api
@@ -121,9 +126,9 @@ free((var)->str)
 char * tstr_expand(tstr_t tsr, size_t len) {
     size_t cap = tsr->cap;
     if ((len += tsr->len) > cap) {
-        for (cap = cap < INT_TSTR ? INT_TSTR : cap; cap < len; cap <<= 1)
-            ;
-        // 需要重新分配内存
+        // 走 1.5 倍内存分配, '合理'降低内存占用
+        cap = cap < INT_TSTR ? INT_TSTR : cap;
+        while (cap < len) cap = cap * 3 / 2;
         tsr->str = realloc(tsr->str, cap);
         tsr->cap = cap;
     }
@@ -131,11 +136,11 @@ char * tstr_expand(tstr_t tsr, size_t len) {
 }
 
 //
-// tstr_cstr - 通过cstr_t串得到一个c的串以'\0'结尾
+// tstr_cstr - 通过 str_t 串得到一个 C 串以'\0'结尾
 // tsr      : tstr_t 串
-// return   : 返回构建好的c的串, 内存地址 tsr->str
+// return   : 返回构建 C 串, 内存地址 tsr->str
 //
-char * tstr_cstr(tstr_t tsr) {
+inline char * tstr_cstr(tstr_t tsr) {
     if (tsr->len < 1u || tsr->str[tsr->len - 1]) {
         tstr_expand(tsr, 1u);
         tsr->str[tsr->len] = '\0';
@@ -149,12 +154,7 @@ inline void tstr_appendn(tstr_t tsr, const char * str, size_t sz) {
     tsr->len += sz;
 }
 
-//
-// 向 tstr_t 串结构中添加字符等, 内存分配失败内部会自己处理
-// str      : 添加的c串
-// sz       : 添加串的长度
-//
-void tstr_appends(tstr_t tsr, const char * str) {
+inline void tstr_appends(tstr_t tsr, const char * str) {
     if (tsr && str) {
         unsigned sz = (unsigned)strlen(str);
         if (sz > 0)
@@ -163,7 +163,7 @@ void tstr_appends(tstr_t tsr, const char * str) {
     }
 }
 
-//-------------------------------------json prevs end-------------------------------------
+//----------------------------------json prevs end----------------------------------
 
 //
 // json_delete - json 对象销毁
@@ -176,11 +176,11 @@ json_delete(json_t c) {
         json_t next = c->next;
         unsigned char t = c->type;
 
-        free(c->keys);
+        free(c->key);
         if ((t & JSON_STRING) && !(t & JSON_CONST))
-            free(c->vals);
+            free(c->str);
 
-        // 子结点 继续递归删除
+        // 子节点 继续递归删除
         if (c->chid)
             json_delete(c->chid);
 
@@ -189,13 +189,13 @@ json_delete(json_t c) {
 }
 
 //
-// json_len - 获取当前 json 数组长度
-// arr      : 待处理的 json_t 数组
-// return   : 返回对象中长度
+// json_len - 获取 json 对象长度
+// c        : json 对象
+// return   : 返回 json 对象长度
 //
 int 
 json_len(json_t arr) {
-    int len = 0;
+    register int len = 0;
     if (arr) {
         for (arr = arr->chid; arr; arr = arr->next)
             ++len;
@@ -204,43 +204,42 @@ json_len(json_t arr) {
 }
 
 //
-// json_array - 获取 array 数组中子结点
-// arr      : 待处理的 json_t 数组
-// i        : [0, len(array)) 索引
-// return   : 返回查询到数组结点
+// json_array - 通过索引获取 json 数组中子节点
+// arr      : json 数组
+// i        : [0, json_len()) 索引
+// return   : 返回对应的数组节点
 //
 json_t 
 json_array(json_t arr, int i) {
     json_t n = arr->chid;
     while (n && i > 0) {
-        --i;
         n = n->next;
+        --i;
     }
     return n;
 }
 
 //
-// json_object - 获取 object 对象中子对象 
-// obj      : 待处理的 json_t 对象
-// k        : 待查询 key
-// return   : 返回查询到对象结点
+// json_object - 获取 json 对象中子对象 
+// obj      : json 对象
+// k        : key
+// return   : 返回对应的对象节点
 //
 json_t 
 json_object(json_t obj, const char * k) {
     json_t n = obj->chid;
-    while (n && str_cmpi(k, n->keys))
+    while (n && str_cmpi(k, n->key))
         n = n->next;
     return n;
 }
 
-//-------------------------------------json parse begin-----------------------------------
+//----------------------------------json parse begin--------------------------------
 
-// number 分析
-static const char * _parse_number(json_t item, const char * str) {
+// parse_number - number 解析
+static const char * parse_number(json_t item, const char * str) {
     char c;
-    int sign = 1;
     double n = 0;
-    int e, esign;
+    int e, eign, sign = 1;
 
     // 正负号处理判断
     if ((c = *str) == '-' || c == '+') {
@@ -271,14 +270,14 @@ static const char * _parse_number(json_t item, const char * str) {
     // 不是科学计数内容直接返回
     item->type = JSON_NUMBER;
     if (c != 'e' && c != 'E') {
-        item->vald = n;
+        item->num = n;
         return str;
     }
 
     // 处理科学计数法
     if ((c = *++str) == '-' || c == '+')
         ++str;
-    esign = c == '-' ? -1 : 1;
+    eign = c == '-' ? -1 : 1;
 
     e = 0;
     while ((c = *str) >= '0' && c <= '9') {
@@ -287,12 +286,12 @@ static const char * _parse_number(json_t item, const char * str) {
     }
 
     // number = +/- number.fraction * 10^+/- exponent
-    item->vald = n * pow(10, esign * e);
+    item->num = n * pow(10, eign * e);
     return str;
 }
 
-// parse 4 digit hexadecimal number
-static unsigned _parse_hex4(const char str[]) {
+// parse_hex4 - parse 4 digit hexadecimal number
+static unsigned parse_hex4(const char str[]) {
     unsigned h, i;
     unsigned char c;
     for (h = i = 0; ; ++str) {
@@ -313,11 +312,11 @@ static unsigned _parse_hex4(const char str[]) {
     return h;
 }
 
-// string 分析
-static const char * _parse_string(json_t item, const char * str) {
-    const char * ptr, * etr = str;
-    char c, * ntr, * out;
+// parse_string - string 解析
+static const char * parse_string(json_t item, const char * str) {
     unsigned len = 1;
+    char c, * ntr, * out;
+    const char * ptr, * etr = str;
 
     while ((c = *etr) != '"' && c) {
         ++etr;
@@ -349,24 +348,24 @@ static const char * _parse_string(json_t item, const char * str) {
         // transcode UTF16 to UTF8. See RFC2781 and RFC3629
         case 'u': {
             // first bytes of UTF8 encoding for a given length in bytes
-            static const unsigned char _marks[] = { 0x00, 0x00, 0xC0, 0xE0, 0xF0, 0xF8, 0xFC };
-            unsigned oc, uc = _parse_hex4(ptr + 1);
+            static const unsigned char marks[] = { 0x00, 0x00, 0xC0, 0xE0, 0xF0, 0xF8, 0xFC };
+            unsigned oc, uc = parse_hex4(ptr + 1);
             // check for invalid
-            if ((ptr += 4) >= etr) goto _fail;
+            if ((ptr += 4) >= etr) goto err_free;
             if ((uc >= 0xDC00 && uc <= 0xDFFF) || uc == 0)
-                goto _fail;
+                goto err_free;
 
             // UTF16 surrogate pairs
             if (uc >= 0xD800 && uc <= 0xDBFF) {
-                if ((ptr + 6) >= etr) goto _fail;
+                if ((ptr + 6) >= etr) goto err_free;
                 // missing second-half of surrogate
                 if ((ptr[1] != '\\') || (ptr[2] != 'u' && ptr[2] != 'U')) 
-                    goto _fail;
+                    goto err_free;
 
-                oc = _parse_hex4(ptr + 3);
+                oc = parse_hex4(ptr + 3);
                 ptr += 6; // parse \uXXXX
                 // invalid second-half of surrogate
-                if (oc < 0xDC00 || oc > 0xDFFF) goto _fail;
+                if (oc < 0xDC00 || oc > 0xDFFF) goto err_free;
                 // calculate unicode codepoint from the surrogate pair
                 uc = 0x10000 + (((uc & 0x3FF) << 10) | (oc & 0x3FF));
             }
@@ -392,35 +391,54 @@ static const char * _parse_string(json_t item, const char * str) {
             // 10xxxxxx
             case 2: *--ntr = ((uc | 0x80) & 0xBF); uc >>= 6;
             // depending on the length in bytes this determines the encoding ofthe first UTF8 byte
-            case 1: *--ntr = ((uc | _marks[len]));
+            case 1: *--ntr = ((uc | marks[len]));
             }
             ntr += len;
-
             break;
         }
         default : *ntr++ = c;
         }
     }
     *ntr = '\0';
-    item->vals = out;
+    item->str = out;
     item->type = JSON_STRING;
     return ptr + 1;
 
-_fail:
+err_free:
     free(out);
     return NULL;
 }
 
-//
-// _parse_value - 递归下降解析
-// item     : 待填充的 json 结点
-// str      : 语句源串
-// return   : 解析后串
-//
-static const char * _parse_value(json_t item, const char * str);
+// parse_literal - 字面串解析
+static const char * parse_literal(json_t item, const char * str) {
+    char c, * ntr;
+    const char * ptr, * etr = str;
 
-// array 解析
-static const char * _parse_array(json_t item, const char * str) {
+    // 获取到 '`' 字符结尾处
+    while ((c = *etr) != '`' && c)
+        ++etr;
+    if (c != '`') return NULL;
+
+    // 开始构造 json string 节点
+    item->type = JSON_STRING;
+    item->str = ntr = malloc(etr - str + 1);
+    for (ptr = str; ptr < etr; ++ptr) 
+        *ntr++ = *ptr;
+    *ntr = '\0';
+
+    return ptr + 1;
+}
+
+//
+// parse_value - 递归下降解析
+// item     : json 节点
+// str      : 语句源串
+// return   : 解析后剩下的串
+//
+static const char * parse_value(json_t item, const char * str);
+
+// parse_array - array 解析
+static const char * parse_array(json_t item, const char * str) {
     json_t chid;
     item->type = JSON_ARRAY;
     // 空数组直接解析完毕退出
@@ -428,7 +446,7 @@ static const char * _parse_array(json_t item, const char * str) {
 
     // 开始解析数组中数据
     item->chid = chid = json_new();
-    str = _parse_value(chid, str);
+    str = parse_value(chid, str);
     if (NULL == str) return NULL;
 
     // array ',' cut
@@ -440,15 +458,15 @@ static const char * _parse_array(json_t item, const char * str) {
         chid->next = json_new();
         chid = chid->next;
         // 继续间接递归处理值
-        str = _parse_value(chid, str);
+        str = parse_value(chid, str);
         if (NULL == str) return NULL;
     }
 
     return ']' == *str ? str + 1 : NULL;
 }
 
-// object 解析
-static const char * _parse_object(json_t item, const char * str) {
+// parse_object - object 解析
+static const char * parse_object(json_t item, const char * str) {
     json_t chid;
     item->type = JSON_OBJECT;
     if ('}' == *str) return str + 1;
@@ -457,13 +475,13 @@ static const char * _parse_object(json_t item, const char * str) {
 
     // {"key":value,...} 先处理 key 
     item->chid = chid = json_new();
-    str = _parse_string(chid, str + 1);
+    str = parse_string(chid, str + 1);
     if (!str || *str != ':') return NULL;
-    chid->keys = chid->vals;
-    chid->vals = NULL;
+    chid->key = chid->str;
+    chid->str = NULL;
 
     // 再处理 value
-    str = _parse_value(chid, str + 1);
+    str = parse_value(chid, str + 1);
     if (NULL == str) return NULL;
 
     // 开始间接递归解析
@@ -473,12 +491,12 @@ static const char * _parse_object(json_t item, const char * str) {
         if ('"' != *str) return NULL;
 
         chid->next = json_new();
-        str = _parse_string(chid = chid->next, str + 1);
+        str = parse_string(chid = chid->next, str + 1);
         if (!str || *str != ':') return NULL;
-        chid->keys = chid->vals;
-        chid->vals = NULL;
+        chid->key = chid->str;
+        chid->str = NULL;
 
-        str = _parse_value(chid, str + 1);
+        str = parse_value(chid, str + 1);
         if (NULL == str) return NULL;
     }
 
@@ -486,40 +504,65 @@ static const char * _parse_object(json_t item, const char * str) {
 }
 
 static const char * 
-_parse_value(json_t item, const char * str) {
+parse_value(json_t item, const char * str) {
     char c;
     if ((!str) || !(c = *str)) return NULL;
 
     switch (c) {
     // n or N = null, f or F = false, t or T = true ...
     case 'n': case 'N':
-        if (str_cmpin(str + 1, "ull", 3)) return NULL;
+        if (str_cmpin(str + 1, "ull", sizeof "ull" - 1)) return NULL;
         item->type = JSON_NULL;
-        return str + 4; // exists invalid is you!
+        return str + sizeof "ull"; // exists invalid is you!
     case 't': case 'T':
-        if (str_cmpin(str + 1, "rue", 3)) return NULL;
-        item->type = JSON_TRUE; item->vald = true;
-        return str + 4;
+        if (str_cmpin(str + 1, "rue", sizeof "rue" - 1)) return NULL;
+        item->type = JSON_BOOL; item->num = true;
+        return str + sizeof "rue";
     case 'f': case 'F':
-        if (str_cmpin(str + 1, "alse", 4)) return NULL;
-        item->type = JSON_FALSE;
-        return str + 5;
-    case '+': case '-': case '.':  
+        if (str_cmpin(str + 1, "alse", sizeof "alse"-1)) return NULL;
+        item->type = JSON_BOOL;
+        return str + sizeof "alse";
+    case '+': case '-': case '.':
     case '0': case '1': case '2': case '3': case '4':
     case '5': case '6': case '7': case '8': case '9':
-        return _parse_number(item, str);
-    case '"': return _parse_string(item, str + 1);
-    case '{': return _parse_object(item, str + 1);
-    case '[': return _parse_array(item, str + 1);
+        return parse_number(item, str);
+    case '`': return parse_literal(item, str + 1);
+    case '"': return parse_string (item, str + 1);
+    case '{': return parse_object (item, str + 1);
+    case '[': return parse_array  (item, str + 1);
     }
+
     return NULL;
 }
 
-//  将 str 中不需要解析串都去掉, 返回最终串的长度. 并且纪念 mini 比男的还平
+// json_mini - 清洗 str 中冗余的串并返回最终串的长度. 纪念 mini 比男的还平 :)
+// EF BB BF     = UTF-8                 (可选标记, 因为 Unicode 标准未有建议)
+// FE FF        = UTF-16, big-endian    (大尾字节序标记)
+// FF FE        = UTF-16, little-endian (小尾字节序标记, windows 中的 Unicode 编码默认标记)
+// 00 00 FE FF  = UTF-32, big-endian    (大尾字节序标记)
+// FF FE 00 00  = UTF-32, little-endian (小尾字节序标记)
+//
 size_t json_mini(char * str) {
-    char c, * in = str, * to = str;
+    char c, * in = str;
+    unsigned char * to = (unsigned char *)str;
     
+    // 跳过 UTF-8 With BOM 前三个字节
+    if (to[0] == 0xEF && to[1] == 0xBB && to[2] == 0xBF)
+        to += 3;
+
     while ((c = *to)) {
+        // step 0 : 处理字面串
+        if (c == '`') {
+            *in++ = c;
+            while ((c = *++to) && c != '`')
+                *in++ = c;
+            if (c) {
+                *in++ = c;
+                ++to;
+            }
+            continue;
+        }
+
         // step 1 : 处理字符串
         if (c == '"') {
             *in++ = c;
@@ -562,22 +605,22 @@ size_t json_mini(char * str) {
 
 //
 // json_parse - json 解析函数
-// str      : json char * 串
+// str      : json 字符串串
 // return   : json 对象, NULL 表示解析失败
 //
 json_t json_parse(const char * str) {
     json_t c = json_new();
-    if (!_parse_value(c, str)) {
+    if (!parse_value(c, str)) {
         json_delete(c);
-        c = NULL;
+        return NULL;
     }
     return c;
 }
 
 //
-// json_file - 通过 path   路径构造 json 对象
-// json_create  - 通过 char * 对象构造 json 对象
-// str      : const char * 字符串
+// json_file - 通过文件构造 json 对象
+// json_create  - 通过字符串构造 json 对象
+// str      : 字符串
 // path     : 文件路径
 // return   : json_t 对象
 //
@@ -596,7 +639,6 @@ json_file(const char * path) {
     return c;
 }
 
-
 json_t 
 json_create(const char * str) {
     json_t c = NULL;
@@ -613,14 +655,14 @@ json_create(const char * str) {
     return c;
 }
 
-//-------------------------------------json parse end-------------------------------------
+//----------------------------------json parse end----------------------------------
 
-//-------------------------------------json print begin-----------------------------------
+//----------------------------------json print begin--------------------------------
 
-// number 打印
-static char * _print_number(json_t item, tstr_t p) {
+// print_number - number 编码
+static char * print_number(json_t item, tstr_t p) {
     char * str;
-    double d = item->vald;
+    double d = item->num;
     
     if (0 == d) {
         str = tstr_expand(p, 2);  // 普通 0 插入
@@ -645,8 +687,8 @@ static char * _print_number(json_t item, tstr_t p) {
     return str;
 }
 
-// string 打印
-static char * _print_string(char * str, tstr_t p) {
+// print_string - string 编码
+static char * print_string(char * str, tstr_t p) {
     size_t len;
     unsigned char c;
     const char * ptr;
@@ -665,8 +707,7 @@ static char * _print_string(char * str, tstr_t p) {
         switch (c) {
         case '\b': case '\t': case '\n':
         case '\f': case '\r':
-        case '"': case '\\':
-            ++len; break;
+        case '\\': case '"': ++len; break;
         default:
             if (c < 32) {
                 // UTF-16 escape sequence uXXXX
@@ -683,7 +724,7 @@ static char * _print_string(char * str, tstr_t p) {
     // 没有特殊字符直接返回
     if (len == ptr - str) {
         memcpy(ntr, str, len);
-        goto _ret;
+        goto ret_out;
     }
 
     // 存在特殊字符挨个处理
@@ -704,25 +745,26 @@ static char * _print_string(char * str, tstr_t p) {
         default: sprintf(ntr, "u%04x", c); ntr += 5;
         }
     }
-_ret:
+
+ret_out:
     out[len+1] = '"';
     return out;
 }
 
-// value 打印 Predeclare these prototypes
-static char * _print_value(json_t item, tstr_t p);
+// print_value - value 编码 Predeclare these prototypes
+static char * print_value(json_t item, tstr_t p);
 
-// array 打印
-static char * _print_array(json_t item, tstr_t p) {
+// print_array - array 编码
+static char * print_array(json_t item, tstr_t p) {
     size_t n = p->len;
     json_t chid = item->chid;
     char * ptr = tstr_expand(p, 1);
 
     *ptr = '['; ++p->len;
 
-    // 处理子结点
+    // 处理子节点
     while (chid) {
-        _print_value(chid, p);
+        print_value(chid, p);
         if ((chid = chid->next)) {
             ptr = tstr_expand(p, 1);
             *ptr++ = ','; ++p->len;
@@ -734,17 +776,17 @@ static char * _print_array(json_t item, tstr_t p) {
     return p->str + n;
 }
 
-// object 打印
-static char * _print_object(json_t item, tstr_t p) {
+// print_object - object 编码
+static char * print_object(json_t item, tstr_t p) {
     size_t n = p->len;
     json_t chid = item->chid;
     char * ptr = tstr_expand(p, 1);
 
     *ptr = '{'; ++p->len;
 
-    // 挨个处理子结点
+    // 挨个处理子节点
     while (chid) {
-        _print_string(chid->keys, p);
+        print_string(chid->key, p);
         p->len += strlen(p->str + p->len);
 
         // 加入一个 ':'
@@ -752,7 +794,7 @@ static char * _print_object(json_t item, tstr_t p) {
         *ptr++ = ':'; ++p->len;
 
         // 接续打印值
-        _print_value(chid, p);
+        print_value(chid, p);
 
         if ((chid = chid->next)) {
             ptr = tstr_expand(p, 1);
@@ -766,17 +808,21 @@ static char * _print_object(json_t item, tstr_t p) {
 }
 
 static char * 
-_print_value(json_t item, tstr_t p) {
+print_value(json_t item, tstr_t p) {
     char * out = NULL;
     switch(item->type) {
-    case JSON_NULL  : out = tstr_expand(p, 5); strcpy(out, "null"); break;
-    case JSON_TRUE  : out = tstr_expand(p, 5); strcpy(out, "true"); break;
-    case JSON_FALSE : out = tstr_expand(p, 6); strcpy(out, "false"); break;
-    case JSON_NUMBER: out = _print_number(item, p); break;
+    case JSON_NULL  : strcpy(out = tstr_expand(p, sizeof "null"), "null"); break;
+    case JSON_BOOL  :
+        if (!!(item->num)) 
+            strcpy(out = tstr_expand(p, sizeof "true"), "true");
+        else 
+            strcpy(out = tstr_expand(p, sizeof "false"), "false");
+        break;
+    case JSON_NUMBER: out = print_number(item, p); break;
     case JSON_STRING+JSON_CONST:
-    case JSON_STRING: out = _print_string(item->vals, p); break;
-    case JSON_OBJECT: out = _print_object(item, p); break;
-    case JSON_ARRAY : out = _print_array(item, p); break;
+    case JSON_STRING: out = print_string(item->str, p); break;
+    case JSON_OBJECT: out = print_object(item, p); break;
+    case JSON_ARRAY : out = print_array(item, p); break;
     }
     p->len += strlen(p->str + p->len);
     return out;
@@ -790,23 +836,23 @@ _print_value(json_t item, tstr_t p) {
 char * 
 json_print(json_t c) {
     TSTR_CREATE(str);
-    if (NULL == _print_value(c, str)) {
+    if (NULL == print_value(c, str)) {
         TSTR_DELETE(str);
         return NULL;
     }
     return realloc(str->str, str->len + 1);
 }
 
-//-------------------------------------json print end-------------------------------------
+//----------------------------------json print end----------------------------------
 
-//-------------------------------------json utils begin-----------------------------------
+//----------------------------------json utils begin--------------------------------
 
 //
-// json_new_arrays - 通过类型创建类型数组 json 对象
+// json_new_arrays - 创建数组类型 json 对象
 // t        : 类型宏
-// arr      : 源数组对象
-// n        : 源数组长度
-// return   : 返回创建好的数组 json 对象
+// arr      : 原数组对象
+// n        : 原数组长度
+// return   : 返回创建好的 json 数组
 //
 json_t 
 json_new_arrays(unsigned char t, const void * arr, int n) {
@@ -816,8 +862,7 @@ json_new_arrays(unsigned char t, const void * arr, int n) {
     for (m = p = a = NULL; i < n; ++i) {
         switch(t) {
         case JSON_NULL  : m = json_new_null(); break;
-        case JSON_TRUE  : m = json_new_bool(arr ? ((bool *)arr)[i] : true); break;
-        case JSON_FALSE : m = json_new_bool(arr ? ((bool *)arr)[i] :false); break;
+        case JSON_BOOL  : m = json_new_bool(arr ? ((bool *)arr)[i] : false); break;
         case JSON_NUMBER: m = json_new_number(((double *)arr)[i]); break;
         case JSON_STRING+JSON_CONST:
         case JSON_STRING: m = json_new_string(((char **)arr)[i]); break;
@@ -836,12 +881,12 @@ json_new_arrays(unsigned char t, const void * arr, int n) {
 }
 
 //
-// json_detach_xxxxx - 通过索引分离出 json 子 json 对象
-// arr      : 待处理的 json_t 数组
-// i        : [0, len(array)) 索引
-// obj      : 待处理的 json_t 对象
-// k        : 待查询 key
-// return   : 分离后的对象
+// json_detach_xxxxx - 通过索引分离出 json 子对象
+// arr      : json_t 数组
+// i        : [0, len()) 索引
+// obj      : json_t 对象
+// k        : key
+// return   : 分离出的 json 对象
 //
 json_t 
 json_detach_array(json_t arr, int i) {
@@ -871,7 +916,7 @@ json_detach_object(json_t obj, const char * k) {
     if ((!obj) || (!k) || (!*k) || !(c = obj->chid))
         return NULL;
     
-    for (p = NULL; c && str_cmpi(c->keys, k); c = c->next)
+    for (p = NULL; c && str_cmpi(c->key, k); c = c->next)
         p = c;
     if (NULL != c) {
         if (NULL != p)
@@ -884,4 +929,4 @@ json_detach_object(json_t obj, const char * k) {
     return c;
 }
 
-//-------------------------------------json utils end-------------------------------------
+//----------------------------------json utils end----------------------------------
