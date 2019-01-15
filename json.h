@@ -1,5 +1,5 @@
-﻿#ifndef JSON_H
-#define JSON_H
+﻿#ifndef _JSON_H
+#define _JSON_H
 
 #include <math.h>
 #include <float.h>
