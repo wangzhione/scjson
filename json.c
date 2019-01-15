@@ -292,10 +292,9 @@ static const char * parse_number(json_t item, const char * str) {
 
 // parse_hex4 - parse 4 digit hexadecimal number
 static unsigned parse_hex4(const char str[]) {
-    unsigned h, i;
-    unsigned char c;
-    for (h = i = 0; ; ++str) {
-        c = *str;
+    unsigned h = 0;
+    for (unsigned i = 0; ; ++str) {
+        unsigned char c = *str;
         if (c >= '0' && c <= '9')
             h += c - '0';
         else if (c >= 'a' && c <= 'f')
@@ -394,8 +393,8 @@ static const char * parse_string(json_t item, const char * str) {
             case 1: *--ntr = ((uc | marks[len]));
             }
             ntr += len;
-            break;
         }
+        break;
         default : *ntr++ = c;
         }
     }
@@ -689,7 +688,6 @@ static char * print_number(json_t item, tstr_t p) {
 
 // print_string - string 编码
 static char * print_string(char * str, tstr_t p) {
-    size_t len;
     unsigned char c;
     const char * ptr;
     char * ntr, * out;
@@ -701,7 +699,7 @@ static char * print_string(char * str, tstr_t p) {
     }
 
     // 获取最终字符输出长度
-    len = 0;
+    size_t len = 0;
     for (ptr = str; (c = *ptr); ++ptr) {
         ++len;
         switch (c) {
