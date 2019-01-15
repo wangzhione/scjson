@@ -625,15 +625,13 @@ json_t json_parse(const char * str) {
 //
 json_t 
 json_file(const char * path) {
-    json_t c;
-    char * str;
     // 读取文件中内容, 并检查
     if (!path || !*path) return NULL;
-    str = str_freads(path);
+    char * str = str_freads(path);
     if (!str) return NULL;
 
     // 返回解析结果
-    c = json_create(str);
+    json_t c = json_create(str);
     free(str);
     return c;
 }
@@ -854,10 +852,8 @@ json_print(json_t c) {
 //
 json_t 
 json_new_arrays(unsigned char t, const void * arr, int n) {
-    int i = 0;
-    json_t m, p, a;
-
-    for (m = p = a = NULL; i < n; ++i) {
+    json_t m = NULL, p = NULL, a = NULL;
+    for (int i = 0; i < n; ++i) {
         switch(t) {
         case JSON_NULL  : m = json_new_null(); break;
         case JSON_BOOL  : m = json_new_bool(arr ? ((bool *)arr)[i] : false); break;
