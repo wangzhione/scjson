@@ -237,21 +237,19 @@ json_object(json_t obj, const char * k) {
 
 // parse_number - number 解析
 static const char * parse_number(json_t item, const char * str) {
-    char c;
-    double n = 0;
-    int e, eign, sign = 1;
-
-    // 正负号处理判断
-    if ((c = *str) == '-' || c == '+') {
-        sign = c == '-' ? -1 : 1;
+        // 正负号处理判断
+    char c = *str;
+    short sign = c == '-' ? -1 : 1;
+    if (c == '-' || c == '+')
         c = *++str;
-    }
 
     // 整数处理部分
+    double n = 0;
     while (c >= '0' && c <= '9') {
         n = n * 10 + c - '0';
         c = *++str;
     }
+
     // 处理小数部分
     if (c == '.') {
         int d = 0;
@@ -264,10 +262,8 @@ static const char * parse_number(json_t item, const char * str) {
         n += s * d;
     }
 
-    // 添加正负号
+    // 添加正负号, 如果不是科学计数内容直接返回
     n *= sign;
-
-    // 不是科学计数内容直接返回
     item->type = JSON_NUMBER;
     if (c != 'e' && c != 'E') {
         item->num = n;
@@ -277,16 +273,16 @@ static const char * parse_number(json_t item, const char * str) {
     // 处理科学计数法
     if ((c = *++str) == '-' || c == '+')
         ++str;
-    eign = c == '-' ? -1 : 1;
+    sign = c == '-' ? -1 : 1;
 
-    e = 0;
+    short e = 0;
     while ((c = *str) >= '0' && c <= '9') {
         e = e * 10 + c - '0';
         ++str;
     }
 
     // number = +/- number.fraction * 10^+/- exponent
-    item->num = n * pow(10, eign * e);
+    item->num = n * pow(10, sign * e);
     return str;
 }
 
