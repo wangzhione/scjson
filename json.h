@@ -1,5 +1,4 @@
-﻿#ifndef _JSON_H
-#define _JSON_H
+﻿#pragma once
 
 #include <math.h>
 #include <float.h>
@@ -190,5 +189,3 @@ extern json_t json_detach_array(json_t arr, int i);
 extern json_t json_detach_object(json_t obj, const char * k);
 
 //----------------------------------json utils end----------------------------------
-
-#endif//_JSON_H
