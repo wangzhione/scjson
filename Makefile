@@ -6,4 +6,4 @@ clean :
 	-rm -rf test.exe
 
 test.exe : test.c json.c
-	gcc -g -Wall -O2 -o $@ $^ -lm
+	gcc -O3 -g -Wall -Wextra -Werror -o $@ $^ -lm

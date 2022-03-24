@@ -1,18 +1,17 @@
 #include "json.h"
 
-//
 // json main run ...
 //
-int main(int argc, char * argv[]) {
+int main(void) {
     const char * jtr = "{\"name\" : \"nihao\", \"nums\" : -123,  }";
     json_t r = json_create(jtr);
     if (NULL == r) {
         fprintf(stderr, "json_create is err %s\n", jtr);
-        return EXIT_FAILURE;
+        exit(EXIT_FAILURE);
     }
     printf("r type = %d\n", r->type);
 
-    char * str = json_print(r);
+    char * str = json_string(r);
     printf("jstr = %s\n", jtr);
     printf("str  = %s\n", str);
     free(str);
@@ -23,12 +22,13 @@ int main(int argc, char * argv[]) {
     r = json_create(jtr);
     if (NULL == r) {
         fprintf(stderr, "json_create is err jstr %s\n", jtr);
-        return EXIT_FAILURE;
+        exit(EXIT_FAILURE);
     }
-    str = json_print(r);
+
+    str = json_string(r);
     printf("str  = %s\n", str);
     free(str);
     json_delete(r);
-    return EXIT_SUCCESS;
+    exit(EXIT_SUCCESS);
 }
 
