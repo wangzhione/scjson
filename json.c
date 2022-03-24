@@ -1,5 +1,12 @@
 ﻿#include "json.h"
 
+#if defined(_WIN32) && defined(_MSC_VER)
+
+#define strcasecmp  _stricmp
+#define strncasecmp _strnicmp
+
+#endif
+
 #ifndef UNUSED
 #define UNUSED(parameter) (void)(parameter)
 #endif//UNUSED
